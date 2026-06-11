@@ -6,6 +6,7 @@ import { registerHelpCommand } from '../commands/help.js';
 import { registerHomeCommand } from '../commands/home.js';
 import { registerListsCommand } from '../commands/lists.js';
 import { registerNewsCommand } from '../commands/news.js';
+import { registerGrokTrendsCommand } from '../commands/grok-trends.js';
 import { registerPostCommands } from '../commands/post.js';
 import { registerQueryIdsCommand } from '../commands/query-ids.js';
 import { registerReadCommands } from '../commands/read.js';
@@ -37,6 +38,8 @@ export const KNOWN_COMMANDS = new Set([
     'user-tweets',
     'news',
     'trending',
+    'grok-trends',
+    'trend-summaries',
     'help',
     'whoami',
     'check',
@@ -107,6 +110,7 @@ export function createProgram(ctx) {
     registerUserCommands(program, ctx);
     registerUserTweetsCommand(program, ctx);
     registerNewsCommand(program, ctx);
+    registerGrokTrendsCommand(program, ctx);
     registerCheckCommand(program, ctx);
     return program;
 }

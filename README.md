@@ -2,6 +2,25 @@
 
 `bird` is a fast X CLI for tweeting, replying, and reading via X/Twitter GraphQL (cookie auth).
 
+> **Fork notice.** This is a community fork/archive of [`@steipete/bird`](https://www.npmjs.com/package/@steipete/bird)
+> by **Peter Steinberger** (MIT). The upstream GitHub repo was taken down; this fork preserves the working v0.8.0
+> build and **adds a `grok-trends` command** (see below). All original code © 2025 Peter Steinberger — see `LICENSE`.
+> Maintained here by [@TheAIMogul](https://github.com/TheAIMogul).
+
+## `grok-trends` — latest trends with their Grok summaries (added in this fork)
+
+X's trend detail pages show an AI ("Grok") summary of *why* something is trending. This fork surfaces that from
+the CLI by chaining two internal GraphQL ops (`ExplorePage` → `TrendHistory` / `ai_trend_by_rest_id`):
+
+```bash
+bird grok-trends            # latest trends + Grok summaries
+bird grok-trends -n 5       # cap the count
+bird grok-trends --json     # structured output
+bird trend-summaries        # alias
+```
+
+Uses the same cookie auth as every other `bird` command. No paid API, no developer account.
+
 ## Disclaimer
 
 This project uses X/Twitter’s **undocumented** web GraphQL API (and cookie auth). X can change endpoints, query IDs,
