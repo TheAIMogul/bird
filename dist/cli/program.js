@@ -70,8 +70,8 @@ export function createProgram(ctx) {
         previous.push(value);
         return previous;
     };
-    program.addHelpText('beforeAll', () => `${ctx.colors.banner('bird')} ${ctx.colors.muted(getCliVersion())} ${ctx.colors.subtitle('— fast X CLI for tweeting, replying, and reading')}`);
-    program.name('bird').description('Post tweets and replies via Twitter/X GraphQL API').version(getCliVersion());
+    program.addHelpText('beforeAll', () => `${ctx.colors.banner('BirdGang')} ${ctx.colors.muted(getCliVersion())} ${ctx.colors.subtitle('— a fast, scriptable command line for X/Twitter')}`);
+    program.name('bird').description('BirdGang: read, post, reply, search, and download from X/Twitter via web GraphQL').version(getCliVersion());
     const formatExample = (command, description) => `${ctx.colors.command(`  ${command}`)}\n${ctx.colors.muted(`    ${description}`)}`;
     program.addHelpText('afterAll', () => `\n${ctx.colors.section('Examples')}\n${[
         formatExample('bird whoami', 'Show the logged-in account via GraphQL cookies'),

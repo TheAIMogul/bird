@@ -1,16 +1,128 @@
-# bird 🐦 — fast X CLI for tweeting, replying, and reading
+<h1 align="center">BirdGang 🐦‍⬛</h1>
 
-`bird` is a fast X CLI for tweeting, replying, and reading via X/Twitter GraphQL (cookie auth).
+<p align="center"><b>A fast, scriptable command line for X / Twitter.</b><br>
+Read, post, reply, search, download media, and pull AI trend summaries — straight from your terminal, using your own browser session. No paid API, no developer account.</p>
 
-> **Fork notice.** This is a community fork/archive of [`@steipete/bird`](https://www.npmjs.com/package/@steipete/bird)
-> by **Peter Steinberger** (MIT). The upstream GitHub repo was taken down; this fork preserves the working v0.8.0
-> build and **adds a `grok-trends` command** (see below). All original code © 2025 Peter Steinberger — see `LICENSE`.
-> Maintained here by [@TheAIMogul](https://github.com/TheAIMogul).
+---
 
-## `grok-trends` — latest trends with their Grok summaries (added in this fork)
+## What is BirdGang?
 
-X's trend detail pages show an AI ("Grok") summary of *why* something is trending. This fork surfaces that from
-the CLI by chaining two internal GraphQL ops (`ExplorePage` → `TrendHistory` / `ai_trend_by_rest_id`):
+BirdGang is a terminal-first X/Twitter client. It talks to X's internal web GraphQL API using the cookies already in your browser, so anything you can see while logged in, you can script:
+
+```bash
+bird whoami                              # who am I logged in as?
+bird read https://x.com/jack/status/20   # read any tweet
+bird search "from:nasa filter:images"    # search
+bird tweet "shipped 🚀"                   # post
+bird download <tweet-url> -o ~/Downloads  # save the media
+bird grok-trends                          # what's trending + why (Grok summaries)
+```
+
+Everything prints clean text by default and structured JSON with `--json`, so it pipes nicely into `jq`, scripts, and agents.
+
+> **Lineage & license.** BirdGang is a community fork of [`@steipete/bird`](https://www.npmjs.com/package/@steipete/bird) by **Peter Steinberger** (MIT). The original upstream repo was taken down and its npm package is frozen at v0.8.0; BirdGang continues the work with new commands and fixes. All original code © 2025 Peter Steinberger — see [`LICENSE`](./LICENSE). Maintained by [@TheAIMogul](https://github.com/TheAIMogul). The CLI command is still `bird` for muscle-memory and script compatibility.
+
+## What BirdGang adds over the frozen v0.8.0
+
+- **`download`** — save a tweet's photos, videos, and GIFs to disk (resumable, original-resolution).
+- **`grok-trends`** — the latest trends *with* X's AI ("Grok") explanation of why each is trending.
+- **Native Comet cookie source** — reads a live session from Comet (Perplexity's Chromium browser), tried first by default, so a fresh Comet login wins over a stale one in another browser.
+- **`t.co` link expansion** — tweet text shows real URLs instead of opaque `t.co/...` shorteners, everywhere.
+- **Profile enrichment** — `following`/`followers` surface bio handles, domains, companies, and org affiliation badges.
+- **Tougher rate-limit handling** — backoff now honors X's `x-rate-limit-reset` header, not just `Retry-After`.
+- **Self-healing query IDs** — X rotates its GraphQL query IDs; BirdGang auto-discovers fresh ones and caches them.
+
+## Install
+
+BirdGang isn't on npm (the `@steipete/bird` name is the frozen original). Install from this repo:
+
+```bash
+# Global install straight from GitHub — gives you the `bird` command
+npm install -g github:TheAIMogul/bird
+
+# …or clone and run the built CLI directly
+git clone https://github.com/TheAIMogul/bird.git
+cd bird
+node dist/cli.js whoami
+```
+
+Requires **Node 18+** (developed on Node 26). The repo ships the compiled `dist/` build, so there's no build step to install.
+
+## Authentication
+
+BirdGang reads your existing X login cookies (`auth_token` + `ct0`) from your browser's cookie store — no passwords, no tokens to paste. Supported sources, tried in this default order: **Comet**, **Safari**, **Chrome/Chromium** (Arc, Brave, etc.), and **Firefox**. Comet is tried first so a fresh Comet session beats a stale token elsewhere.
+
+```bash
+bird whoami                              # auto-detects a logged-in browser (Comet first)
+bird --cookie-source chrome whoami       # force a specific browser
+bird --chrome-profile "Profile 1" whoami # pick a Chrome/Comet profile
+bird --firefox-profile default-release whoami
+```
+
+You can also pass cookies explicitly when scripting:
+
+```bash
+bird --auth-token "$AUTH_TOKEN" --ct0 "$CT0" whoami
+```
+
+## Quickstart
+
+```bash
+# Identity
+bird whoami
+
+# Read
+bird read https://x.com/user/status/1234567890123456789
+bird 1234567890123456789 --json          # bare ID/URL is shorthand for `read`
+bird thread <id>                         # full conversation thread
+bird replies <id> --max-pages 3 --json
+
+# Search & mentions
+bird search "from:steipete" -n 10
+bird mentions -n 5
+bird mentions --user @steipete -n 5
+
+# Timelines
+bird home -n 20                          # For You
+bird home --following -n 20              # Following feed
+bird user-tweets @nasa -n 50 --json
+bird list-timeline https://x.com/i/lists/123 --all --json
+
+# Post & engage
+bird tweet "hello from BirdGang"
+bird reply <id> "nice thread"
+bird tweet "with a pic" --media ./photo.jpg --alt "a sunset"
+
+# Social graph
+bird following -n 20
+bird followers --user 12345678 -n 10
+bird follow @someone
+bird unfollow @someone
+
+# Bookmarks & likes
+bird bookmarks --all --json
+bird unbookmark <id>
+bird likes -n 5
+```
+
+## Featured commands
+
+### `download` — save a tweet's media
+
+Downloads the photos, videos, and animated GIFs on a tweet. Videos use the highest-bitrate MP4 variant; photos are fetched at original resolution. Downloads resume if interrupted (re-run the same command), write atomically, and back off on rate limits.
+
+```bash
+bird download https://x.com/user/status/1234567890123456789
+bird dl <id> -o ~/Downloads          # alias + output directory
+bird download <id> --videos-only     # videos/GIFs only
+bird download <id> --photos-only     # photos only (original resolution)
+bird download <id> --include-quoted  # also grab a quoted tweet's media
+bird download <id> --json            # JSON manifest of saved files
+```
+
+### `grok-trends` — trends with their AI summaries
+
+X's trend pages include a Grok-generated summary of *why* something is trending. BirdGang surfaces it from the CLI:
 
 ```bash
 bird grok-trends            # latest trends + Grok summaries
@@ -19,405 +131,94 @@ bird grok-trends --json     # structured output
 bird trend-summaries        # alias
 ```
 
-Uses the same cookie auth as every other `bird` command. No paid API, no developer account.
-
-## `download` — save a tweet's media to disk (added in this fork)
-
-Download the photos, videos, and animated GIFs attached to a tweet. Picks the highest-bitrate
-MP4 variant for videos and requests original-resolution photos, with HTTP Range resume (re-run to
-continue an interrupted download), atomic writes, and 429-aware backoff.
+### `news` — AI-curated headlines
 
 ```bash
-bird download https://x.com/user/status/1234567890123456789
-bird dl 1234567890123456789 -o ~/Downloads        # alias + output dir
-bird download <id> --videos-only                  # videos/GIFs only
-bird download <id> --photos-only                  # photos only (original resolution)
-bird download <id> --include-quoted               # also grab a quoted tweet's media
-bird download <id> --json                          # JSON manifest of downloaded files
+bird news --ai-only -n 20
+bird news --sports --entertainment -n 15
+bird news --with-tweets --tweets-per-item 3 -n 10
+bird news --json-full --ai-only -n 10   # includes raw API response
 ```
 
-Other niceties in this fork: tweet text now expands `t.co` links to their real URLs everywhere,
-and `following`/`followers` listings surface bio handles/domains/companies plus org affiliation badges.
+Tab filters (combinable): `--for-you`, `--news-only`, `--sports`, `--entertainment`, `--trending-only`. By default it pulls For You + News + Sports + Entertainment and de-duplicates headlines.
+
+## JSON output
+
+Add `--json` to any read command for structured output: `read`, `replies`, `thread`, `search`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `about`, `lists`, `list-timeline`, `user-tweets`, `news`, `grok-trends`, `query-ids`, and `download`. Add `--json-full` (tweet/news commands) to include the raw API response under `_raw`.
+
+```bash
+bird search "from:nasa" -n 5 --json | jq '.[].text'
+bird download <id> --json | jq '.downloaded[].file'
+```
+
+## Library usage
+
+BirdGang is also importable — the same GraphQL client the CLI uses:
+
+```ts
+import { TwitterClient, resolveCredentials } from 'birdgang';
+
+const { cookies } = await resolveCredentials({ cookieSource: 'comet' });
+const client = new TwitterClient({ cookies });
+
+const search = await client.search('from:steipete', 50);
+const news = await client.getNews(10, { aiOnly: true });
+```
+
+## Configuration
+
+BirdGang reads JSON5 config from `~/.config/bird/config.json5` (global) and `./.birdrc.json5` (per-project). Supported keys: `chromeProfile`, `chromeProfileDir`, `firefoxProfile`, `cookieSource`, `cookieTimeoutMs`, `timeoutMs`, `quoteDepth`.
+
+Environment variables: `NO_COLOR`, `BIRD_TIMEOUT_MS`, `BIRD_COOKIE_TIMEOUT_MS`, `BIRD_QUOTE_DEPTH`, `BIRD_QUERY_IDS_CACHE`.
+
+Self-healing GraphQL query IDs are cached at `~/.config/bird/query-ids-cache.json` (24h TTL). Force a refresh:
+
+```bash
+bird query-ids --fresh
+```
+
+## Command reference
+
+| Command | Description |
+|---|---|
+| `whoami` | Show the logged-in account |
+| `read <id\|url>` · `<id\|url>` | Read a tweet (bare ID/URL is shorthand) |
+| `thread <id\|url>` | Full conversation thread |
+| `replies <id\|url>` | Replies to a tweet (paginated) |
+| `search "<query>"` | Search tweets |
+| `mentions` | Your mentions (or `--user`'s) |
+| `home` | Home timeline (`--following` for the Following feed) |
+| `user-tweets <@user>` | A user's profile timeline |
+| `list-timeline <id\|url>` | Tweets from a List |
+| `lists` | Your Lists |
+| `tweet "<text>"` | Post a tweet (`--media`, `--alt`) |
+| `reply <id\|url> "<text>"` | Reply to a tweet |
+| `following` · `followers` | Social graph (with bio/affiliation enrichment) |
+| `follow` · `unfollow` | Manage follows |
+| `bookmarks` · `unbookmark` | Bookmarks |
+| `likes` | Your liked tweets |
+| `news` | AI-curated headlines |
+| `grok-trends` · `trend-summaries` | Trends with Grok summaries |
+| `download` · `dl` | Save a tweet's media to disk |
+| `about <@user>` | Account origin/location metadata |
+| `query-ids [--fresh]` | Inspect/refresh cached GraphQL query IDs |
+| `help [command]` | Help for any command |
+
+Run `bird <command> --help` for the full flag list of any command.
+
+## Development & tests
+
+```bash
+node tests/feature-tests.mjs   # offline unit/integration tests for the fork's features
+node dist/cli.js --help        # browse the CLI
+```
+
+The repo ships compiled `dist/` ESM; new features are added as hand-authored modules under `dist/` and wired into `dist/cli/program.js`.
 
 ## Disclaimer
 
-This project uses X/Twitter’s **undocumented** web GraphQL API (and cookie auth). X can change endpoints, query IDs,
-and anti-bot behavior at any time — **expect this to break without notice**.
+BirdGang uses X/Twitter's **undocumented** web GraphQL API with cookie auth. X can change endpoints, rotate query IDs, and adjust anti-bot behavior at any time — **expect things to break without notice.** Use responsibly and within X's terms; you are responsible for how you use your own account.
 
-## Install
+## License
 
-```bash
-npm install -g @steipete/bird
-# or
-pnpm add -g @steipete/bird
-# or
-bun add -g @steipete/bird
-
-# one-shot (no install)
-bunx @steipete/bird whoami
-```
-
-Homebrew (macOS, prebuilt Bun binary):
-
-```bash
-brew install steipete/tap/bird
-```
-
-## Quickstart
-
-```bash
-# Show the logged-in account
-bird whoami
-
-# Discover command help
-bird help whoami
-
-# Read a tweet (URL or ID)
-bird read https://x.com/user/status/1234567890123456789
-bird 1234567890123456789 --json
-
-# Thread + replies
-bird thread https://x.com/user/status/1234567890123456789
-bird replies 1234567890123456789
-bird replies 1234567890123456789 --max-pages 3 --json
-bird thread 1234567890123456789 --max-pages 3 --json
-
-# Search + mentions
-bird search "from:steipete" -n 5
-bird mentions -n 5
-bird mentions --user @steipete -n 5
-
-# User tweets (profile timeline)
-bird user-tweets @steipete -n 20
-bird user-tweets @steipete -n 50 --json
-
-# Bookmarks
-bird bookmarks -n 5
-bird bookmarks --folder-id 123456789123456789 -n 5 # https://x.com/i/bookmarks/<folder-id>
-bird bookmarks --all --json
-bird bookmarks --all --max-pages 2 --json
-bird bookmarks --include-parent --json
-bird unbookmark 1234567890123456789
-bird unbookmark https://x.com/user/status/1234567890123456789
-
-# Likes
-bird likes -n 5
-
-# News and trending topics (AI-curated from Explore tabs)
-bird news --ai-only -n 10
-bird news --sports -n 5
-
-# Lists
-bird list-timeline 1234567890 -n 20
-bird list-timeline https://x.com/i/lists/1234567890 --all --json
-bird list-timeline 1234567890 --max-pages 3 --json
-
-# Following (who you follow)
-bird following -n 20
-bird following --user 12345678 -n 10  # by user ID
-
-# Followers (who follows you)
-bird followers -n 20
-bird followers --user 12345678 -n 10  # by user ID
-
-# Refresh GraphQL query IDs cache (no rebuild)
-bird query-ids --fresh
-```
-
-## News & Trending
-
-Fetch AI-curated news and trending topics from X's Explore page tabs:
-
-```bash
-# Fetch 10 news items from all tabs (default: For You, News, Sports, Entertainment)
-bird news -n 10
-
-# Fetch only AI-curated news (filters out regular trends)
-bird news --ai-only -n 20
-
-# Fetch from specific tabs
-bird news --news-only --ai-only -n 10
-bird news --sports -n 15
-bird news --entertainment --ai-only -n 5
-
-# Include related tweets for each news item
-bird news --with-tweets --tweets-per-item 3 -n 10
-
-# Combine multiple tab filters
-bird news --sports --entertainment -n 20
-
-# JSON output
-bird news --json -n 5
-bird news --json-full --ai-only -n 10  # includes raw API response
-```
-
-Tab options (can be combined):
-- `--for-you` — Fetch from For You tab only
-- `--news-only` — Fetch from News tab only
-- `--sports` — Fetch from Sports tab only
-- `--entertainment` — Fetch from Entertainment tab only
-- `--trending-only` — Fetch from Trending tab only
-
-By default, the command fetches from For You, News, Sports, and Entertainment tabs (Trending excluded to reduce noise). Headlines are automatically deduplicated across tabs.
-
-## Library
-
-`bird` can be used as a library (same GraphQL client as the CLI):
-
-```ts
-import { TwitterClient, resolveCredentials } from '@steipete/bird';
-
-const { cookies } = await resolveCredentials({ cookieSource: 'safari' });
-const client = new TwitterClient({ cookies });
-
-// Search for tweets
-const searchResult = await client.search('from:steipete', 50);
-
-// Fetch news and trending topics from all tabs (default: For You, News, Sports, Entertainment)
-const newsResult = await client.getNews(10, { aiOnly: true });
-
-// Fetch from specific tabs with related tweets
-const sportsNews = await client.getNews(10, {
-  aiOnly: true,
-  withTweets: true,
-  tabs: ['sports', 'entertainment']
-});
-```
-
-Account details (About profile):
-
-```ts
-const aboutResult = await client.getUserAboutAccount('steipete');
-if (aboutResult.success && aboutResult.aboutProfile) {
-  console.log(aboutResult.aboutProfile.accountBasedIn);
-}
-```
-
-Fields:
-- `accountBasedIn`
-- `source`
-- `createdCountryAccurate`
-- `locationAccurate`
-- `learnMoreUrl`
-
-## Commands
-
-- `bird tweet "<text>"` — post a new tweet.
-- `bird reply <tweet-id-or-url> "<text>"` — reply to a tweet using its ID or URL.
-- `bird help [command]` — show help (or help for a subcommand).
-- `bird query-ids [--fresh] [--json]` — inspect or refresh cached GraphQL query IDs.
-- `bird home [-n count] [--following] [--json] [--json-full]` — fetch your home timeline (For You) or Following feed.
-- `bird read <tweet-id-or-url> [--json]` — fetch tweet content as text or JSON.
-- `bird <tweet-id-or-url> [--json]` — shorthand for `read` when only a URL or ID is provided.
-- `bird replies <tweet-id-or-url> [--all] [--max-pages n] [--cursor string] [--delay ms] [--json]` — list replies to a tweet.
-- `bird thread <tweet-id-or-url> [--all] [--max-pages n] [--cursor string] [--delay ms] [--json]` — show the full conversation thread.
-- `bird search "<query>" [-n count] [--all] [--max-pages n] [--cursor string] [--json]` — search for tweets matching a query; `--max-pages` requires `--all` or `--cursor`.
-- `bird mentions [-n count] [--user @handle] [--json]` — find tweets mentioning a user (defaults to the authenticated user).
-- `bird user-tweets <@handle> [-n count] [--cursor string] [--max-pages n] [--delay ms] [--json]` — get tweets from a user's profile timeline.
-- `bird bookmarks [-n count] [--folder-id id] [--all] [--max-pages n] [--cursor string] [--expand-root-only] [--author-chain] [--author-only] [--full-chain-only] [--include-ancestor-branches] [--include-parent] [--thread-meta] [--sort-chronological] [--json]` — list your bookmarked tweets (or a specific bookmark folder); expansion flags control thread context; `--max-pages` requires `--all` or `--cursor`.
-- `bird unbookmark <tweet-id-or-url...>` — remove one or more bookmarks by tweet ID or URL.
-- `bird likes [-n count] [--all] [--max-pages n] [--cursor string] [--json] [--json-full]` — list your liked tweets; `--max-pages` requires `--all` or `--cursor`.
-- `bird news [-n count] [--ai-only] [--with-tweets] [--tweets-per-item n] [--for-you] [--news-only] [--sports] [--entertainment] [--trending-only] [--json]` — fetch news and trending topics from X's Explore tabs.
-- `bird trending` — alias for `news` command.
-- `bird lists [--member-of] [-n count] [--json]` — list your lists (owned or memberships).
-- `bird list-timeline <list-id-or-url> [-n count] [--all] [--max-pages n] [--cursor string] [--json]` — get tweets from a list timeline; `--max-pages` implies `--all`.
-- `bird following [--user <userId>] [-n count] [--cursor string] [--all] [--max-pages n] [--json]` — list users that you (or another user) follow; `--max-pages` requires `--all`.
-- `bird followers [--user <userId>] [-n count] [--cursor string] [--all] [--max-pages n] [--json]` — list users that follow you (or another user); `--max-pages` requires `--all`.
-- `bird about <@handle> [--json]` — get account origin and location information for a user.
-- `bird whoami` — print which Twitter account your cookies belong to.
-- `bird check` — show which credentials are available and where they were sourced from.
-
-Bookmarks flags:
-- `--expand-root-only`: expand threads only when the bookmark is a root tweet.
-- `--author-chain`: keep only the bookmarked author's connected self-reply chain.
-- `--author-only`: include all tweets from the bookmarked author within the thread.
-- `--full-chain-only`: keep the entire reply chain connected to the bookmarked tweet (all authors).
-- `--include-ancestor-branches`: include sibling branches for ancestors when using `--full-chain-only`.
-- `--include-parent`: include the direct parent tweet for non-root bookmarks.
-- `--thread-meta`: add thread metadata fields to each tweet.
-- `--sort-chronological`: sort output globally oldest to newest (default preserves bookmark order).
-
-Global options:
-- `--auth-token <token>`: set the `auth_token` cookie manually.
-- `--ct0 <token>`: set the `ct0` cookie manually.
-- `--cookie-source <comet|safari|chrome|firefox>`: choose browser cookie source (repeatable; order matters). Default order tries `comet` first.
-- `--chrome-profile <name>`: Chrome profile name for cookie extraction (e.g., `Default`, `Profile 2`).
-- `--chrome-profile-dir <path>`: Chrome/Chromium profile directory or cookie DB path for cookie extraction.
-- `--firefox-profile <name>`: Firefox profile for cookie extraction.
-- `--cookie-timeout <ms>`: cookie extraction timeout for keychain/OS helpers (milliseconds).
-- `--timeout <ms>`: abort requests after the given timeout (milliseconds).
-- `--quote-depth <n>`: max quoted tweet depth in JSON output (default: 1; 0 disables).
-- `--plain`: stable output (no emoji, no color).
-- `--no-emoji`: disable emoji output.
-- `--no-color`: disable ANSI colors (or set `NO_COLOR=1`).
-- `--media <path>`: attach media file (repeatable, up to 4 images or 1 video).
-- `--alt <text>`: alt text for the corresponding `--media` (repeatable).
-
-## Authentication (GraphQL)
-
-GraphQL mode uses your existing X/Twitter web session (no password prompt). It sends requests to internal
-X endpoints and authenticates via cookies (`auth_token`, `ct0`).
-
-Write operations:
-- `tweet`/`reply` primarily use GraphQL (`CreateTweet`).
-- If GraphQL returns error `226` (“automated request”), `bird` falls back to the legacy `statuses/update.json` endpoint.
-
-`bird` resolves credentials in this order:
-
-1. CLI flags: `--auth-token`, `--ct0`
-2. Environment variables: `AUTH_TOKEN`, `CT0` (fallback: `TWITTER_AUTH_TOKEN`, `TWITTER_CT0`)
-3. Browser cookies via `@steipete/sweet-cookie` (override via `--cookie-source` order)
-
-Browser cookie sources:
-- Comet (Perplexity's Chromium browser): `~/Library/Application Support/Comet/<Profile>/Cookies` (macOS only). Tried first by default. Decrypted natively via the `Comet Safe Storage` keychain entry. With no `--chrome-profile`, profiles are scanned (`Default`, then `Profile 1`, `Profile 2`, …) and the first one with a logged-in x.com session wins; pass `--chrome-profile "Profile 1"` to pin one.
-- Safari: `~/Library/Cookies/Cookies.binarycookies` (fallback: `~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies`)
-- Chrome: `~/Library/Application Support/Google/Chrome/<Profile>/Cookies`
-- Firefox: `~/Library/Application Support/Firefox/Profiles/<profile>/cookies.sqlite`
-  - For other Chromium variants (Arc/Brave/etc), pass a profile directory or cookie DB via `--chrome-profile-dir`.
-
-## Config (JSON5)
-
-Config precedence: CLI flags > env vars > project config > global config.
-
-- Global: `~/.config/bird/config.json5`
-- Project: `./.birdrc.json5`
-
-Example `~/.config/bird/config.json5`:
-
-```json5
-{
-  // Cookie source order for browser extraction (string or array)
-  cookieSource: ["firefox", "safari"],
-  chromeProfileDir: "/path/to/Chromium/Profile",
-  firefoxProfile: "default-release",
-  cookieTimeoutMs: 30000,
-  timeoutMs: 20000,
-  quoteDepth: 1
-}
-```
-
-Environment shortcuts:
-- `BIRD_TIMEOUT_MS`
-- `BIRD_COOKIE_TIMEOUT_MS`
-- `BIRD_QUOTE_DEPTH`
-
-## Output
-
-- `--json` prints raw tweet objects for read/replies/thread/search/mentions/user-tweets/bookmarks/likes.
-- When using `--json` with pagination (`--all`, `--cursor`, `--max-pages`, or for `user-tweets` when `-n > 20`), output is `{ tweets, nextCursor }`.
-- `read` returns full text for Notes and Articles when present.
-- Use `--plain` for stable, script-friendly output (no emoji, no color).
-
-### JSON Schema
-
-When using `--json`, tweet objects include:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Tweet ID |
-| `text` | string | Full tweet text (includes Note/Article content when present) |
-| `author` | object | `{ username, name }` |
-| `authorId` | string? | Author's user ID |
-| `createdAt` | string | Timestamp |
-| `replyCount` | number | Number of replies |
-| `retweetCount` | number | Number of retweets |
-| `likeCount` | number | Number of likes |
-| `conversationId` | string | Thread conversation ID |
-| `inReplyToStatusId` | string? | Parent tweet ID (present if this is a reply) |
-| `quotedTweet` | object? | Embedded quote tweet (same schema; depth controlled by `--quote-depth`) |
-
-When using `--json` with `following`/`followers`, user objects include:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | User ID |
-| `username` | string | Username/handle |
-| `name` | string | Display name |
-| `description` | string? | User bio |
-| `followersCount` | number? | Followers count |
-| `followingCount` | number? | Following count |
-| `isBlueVerified` | boolean? | Blue verified flag |
- | `profileImageUrl` | string? | Profile image URL |
- | `createdAt` | string? | Account creation timestamp |
-
-When using `--json` with `news`/`trending`, news objects include:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique identifier for the news item |
-| `headline` | string | News headline or trend title |
-| `category` | string? | Category (e.g., "AI · Technology", "Trending", "News") |
-| `timeAgo` | string? | Relative time (e.g., "2h ago") |
-| `postCount` | number? | Number of posts |
-| `description` | string? | Item description |
-| `url` | string? | URL to the trend or news article |
-| `tweets` | array? | Related tweets (only when `--with-tweets` is used) |
-| `_raw` | object? | Raw API response (only when `--json-full` is used) |
-
-
-## Query IDs (GraphQL)
-
-X rotates GraphQL “query IDs” frequently. Each GraphQL operation is addressed as:
-
-- `operationName` (e.g. `TweetDetail`, `CreateTweet`)
-- `queryId` (rotating ID baked into X’s web client bundles)
-
-`bird` ships with a baseline mapping in `src/lib/query-ids.json` (copied into `dist/` on build). At runtime,
-it can refresh that mapping by scraping X’s public web client bundles and caching the result on disk.
-
-Runtime cache:
-- Default path: `~/.config/bird/query-ids-cache.json`
-- Override path: `BIRD_QUERY_IDS_CACHE=/path/to/file.json`
-- TTL: 24h (stale cache is still used, but marked “not fresh”)
-
-Auto-recovery:
-- On GraphQL `404` (query ID invalid), `bird` forces a refresh once and retries.
-- For `TweetDetail`/`SearchTimeline`, `bird` also rotates through a small set of known fallback IDs to reduce
-  breakage while refreshing.
-
-Refresh on demand:
-
-```bash
-bird query-ids --fresh
-```
-
-Exit codes:
-- `0`: success
-- `1`: runtime error (network/auth/etc)
-- `2`: invalid usage/validation (e.g. bad `--user` handle)
-
-## Version
-
-`bird --version` prints `package.json` version plus current git sha when available, e.g. `0.3.0 (3df7969b)`.
-
-## Media uploads
-
-- Attach media with `--media` (repeatable) and optional `--alt` per item.
-- Up to 4 images/GIFs, or 1 video (no mixing). Supported: jpg, jpeg, png, webp, gif, mp4, mov.
-- Images/GIFs + 1 video supported (uploads via Twitter legacy upload endpoint + cookies; video may take longer to process).
-
-Example:
-
-```bash
-bird tweet "hi" --media img.png --alt "desc"
-```
-
-## Development
-
-```bash
-cd ~/Projects/bird
-pnpm install
-pnpm run build       # dist/ + bun binary
-pnpm run build:dist  # dist/ only
-pnpm run build:binary
-
-pnpm run dev tweet "Test"
-pnpm run dev -- --plain check
-pnpm test
-pnpm run lint
-```
-
-## Notes
-
-- GraphQL uses internal X endpoints and can be rate limited (429).
-- Query IDs rotate; refresh at runtime with `bird query-ids --fresh` (or update the baked baseline via `pnpm run graphql:update`).
+MIT. Original code © 2025 Peter Steinberger; BirdGang fork maintained by [@TheAIMogul](https://github.com/TheAIMogul). See [`LICENSE`](./LICENSE).

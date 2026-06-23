@@ -1,7 +1,7 @@
 {
-  "name": "@steipete/bird",
+  "name": "birdgang",
   "version": "0.8.0",
-  "description": "CLI tool for tweeting and replying via Twitter/X GraphQL API",
+  "description": "BirdGang — a fast, scriptable command line for X/Twitter (read, post, download media, AI trend summaries) via web GraphQL + cookie auth",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
