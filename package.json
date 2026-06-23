@@ -1,6 +1,6 @@
 {
   "name": "birdgang",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "description": "BirdGang — a fast, scriptable command line for X/Twitter (read, post, download media, AI trend summaries) via web GraphQL + cookie auth",
   "type": "module",
   "main": "dist/index.js",

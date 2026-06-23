@@ -1,27 +1,41 @@
 # Changelog
 
-## Unreleased (fork) — 2026-06-22
+BirdGang versioning starts at **1.0.0**. Entries below `1.0.0` are the upstream
+`@steipete/bird` history (pre-fork), kept for provenance.
+
+## 1.0.0 — 2026-06-23 — first BirdGang release
+
+Rebrands the project to **BirdGang** and ships its first independent release. The CLI command
+remains `bird` for compatibility. Forked from the frozen upstream `@steipete/bird` 0.8.0.
 
 ### Added
 - `download` command (alias `dl`) — download a tweet's media (photos, videos, animated GIFs)
-  to disk. Reuses the existing highest-bitrate variant selection, requests original-resolution
-  photos (`?name=orig`), and downloads each asset with HTTP Range resume, atomic `.part`→rename,
-  and 429-aware backoff. Flags: `-o/--out`, `--include-quoted`, `--photos-only`, `--videos-only`, `--json`.
-- Bio enrichment in user listings (`following`/`followers`) — surfaces `@handles`, domains, and
-  company mentions extracted from a profile bio, plus the org affiliation badge when present.
+  to disk. Highest-bitrate MP4 variant selection, original-resolution photos (`?name=orig`),
+  HTTP Range resume, atomic `.part`→rename, and 429-aware backoff. Flags: `-o/--out`,
+  `--include-quoted`, `--photos-only`, `--videos-only`, `--json`.
+- Native **Comet** (Perplexity Chromium) cookie source, tried first by default, so a live Comet
+  session beats a stale token in another browser.
+- Bio enrichment in `following`/`followers` — surfaces `@handles`, domains, and company mentions
+  from a profile bio, plus the org affiliation badge when present.
 
 ### Changed
-- Tweet text now expands `t.co` short links to their real URLs (via the tweet's own url entities)
+- Rebranded to BirdGang: new README, package renamed to `birdgang`, CLI banner shows "BirdGang".
+- Tweet text now expands `t.co` short links to their real URLs (via the tweet's url entities)
   across `read`, `thread`, `replies`, `search`, timelines, etc. No-op when entities are absent.
 - Rate-limit backoff now honors X's `x-rate-limit-reset` absolute-epoch header (in addition to
   `Retry-After`) before falling back to exponential backoff + jitter.
+
+### Removed
+- Orphaned build sourcemaps (`*.js.map`, `*.d.ts.map`) that referenced a `src/` tree absent from
+  this dist-only repo; stale planning notes and `.DS_Store` cruft.
 
 ### Tests
 - `tests/feature-tests.mjs` — 18 offline unit/integration tests (host safety, variant selection,
   backoff math, resumable downloader with injected fetch/sleep, URL expansion, bio/affiliation).
 
-### Notes
-- Query-ID self-healing rotation already shipped in this fork (`lib/runtime-query-ids.js`); no change needed.
+---
+
+## Upstream history (`@steipete/bird`, pre-fork)
 
 ## 0.8.0 — 2026-01-19
 
