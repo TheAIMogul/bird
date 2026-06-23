@@ -2,6 +2,7 @@
 // Reverse-engineered from x.com internal GraphQL (no paid API):
 //   ExplorePage  (LOLkOnxrvpJzJwyZ7748Bw) -> curated AI-trend rest_ids (stories-*-trend-<id>)
 //   TrendHistory (7oYkOMFMRfqdwOec9D7wlw) {trendId} -> grok_story headerText + bodyText
+import { randomBytes } from 'node:crypto';
 const BEARER = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA';
 const EXPLORE_PAGE = 'LOLkOnxrvpJzJwyZ7748Bw';
 const TREND_HISTORY = '7oYkOMFMRfqdwOec9D7wlw';
@@ -14,18 +15,27 @@ async function gql(qid, op, variables, cookies, timeoutMs) {
     try {
         const res = await fetch(url, {
             headers: {
+                accept: '*/*',
+                'accept-language': 'en-US,en;q=0.9',
                 authorization: BEARER,
                 'x-csrf-token': cookies.ct0,
                 'x-twitter-active-user': 'yes',
                 'x-twitter-auth-type': 'OAuth2Session',
                 'x-twitter-client-language': 'en',
+                'x-client-transaction-id': randomBytes(16).toString('hex'),
                 'content-type': 'application/json',
                 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+                origin: 'https://x.com',
+                referer: 'https://x.com/',
                 cookie: `auth_token=${cookies.authToken}; ct0=${cookies.ct0}`,
             },
             signal: controller.signal,
         });
         if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            if (process.env.BIRD_DEBUG) {
+                console.error(`[debug] ${op} HTTP ${res.status}: ${body.slice(0, 500)}`);
+            }
             return { error: `HTTP ${res.status}` };
         }
         return { data: await res.json() };

@@ -21,6 +21,24 @@ bird trend-summaries        # alias
 
 Uses the same cookie auth as every other `bird` command. No paid API, no developer account.
 
+## `download` — save a tweet's media to disk (added in this fork)
+
+Download the photos, videos, and animated GIFs attached to a tweet. Picks the highest-bitrate
+MP4 variant for videos and requests original-resolution photos, with HTTP Range resume (re-run to
+continue an interrupted download), atomic writes, and 429-aware backoff.
+
+```bash
+bird download https://x.com/user/status/1234567890123456789
+bird dl 1234567890123456789 -o ~/Downloads        # alias + output dir
+bird download <id> --videos-only                  # videos/GIFs only
+bird download <id> --photos-only                  # photos only (original resolution)
+bird download <id> --include-quoted               # also grab a quoted tweet's media
+bird download <id> --json                          # JSON manifest of downloaded files
+```
+
+Other niceties in this fork: tweet text now expands `t.co` links to their real URLs everywhere,
+and `following`/`followers` listings surface bio handles/domains/companies plus org affiliation badges.
+
 ## Disclaimer
 
 This project uses X/Twitter’s **undocumented** web GraphQL API (and cookie auth). X can change endpoints, query IDs,

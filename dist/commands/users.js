@@ -1,5 +1,6 @@
 import { normalizeHandle } from '../lib/normalize-handle.js';
 import { TwitterClient } from '../lib/twitter-client.js';
+import { extractBioEntities } from '../lib/profile-enrich.js';
 function formatAboutProfile(profile, ctx, handle) {
     const lines = [`${ctx.p('info')}Account information for @${handle}:`];
     if (profile.accountBasedIn) {
@@ -27,6 +28,13 @@ function printUsers(users, ctx) {
         }
         if (user.followersCount !== undefined) {
             console.log(`  ${ctx.p('info')}${user.followersCount.toLocaleString()} followers`);
+        }
+        if (user.affiliation?.label) {
+            console.log(`  ${ctx.l('source')}affiliated: ${user.affiliation.label}${user.affiliation.handle ? ` (${user.affiliation.handle})` : ''}`);
+        }
+        const bioEntities = extractBioEntities(user.description);
+        if (bioEntities.length > 0) {
+            console.log(`  ${ctx.colors.muted(bioEntities.map((e) => e.value).join('  '))}`);
         }
         console.log('──────────────────────────────────────────────────');
     }

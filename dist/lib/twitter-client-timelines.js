@@ -1,6 +1,7 @@
 import { TWITTER_API_BASE } from './twitter-client-constants.js';
 import { buildBookmarksFeatures, buildLikesFeatures } from './twitter-client-features.js';
 import { extractCursorFromInstructions, parseTweetsFromInstructions } from './twitter-client-utils.js';
+import { computeBackoffMs } from './media-download.js';
 export function withTimelines(Base) {
     class TwitterClientTimelines extends Base {
         // biome-ignore lint/complexity/noUselessConstructor lint/suspicious/noExplicitAny: TS mixin constructor requirement.
@@ -455,12 +456,14 @@ export function withTimelines(Base) {
                     status: response.status,
                     attempt,
                 });
-                // Retry-After supports delta-seconds only; HTTP-date falls back to backoff.
-                const retryAfter = response.headers?.get?.('retry-after');
-                const retryAfterMs = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : Number.NaN;
-                const backoffMs = Number.isFinite(retryAfterMs)
-                    ? retryAfterMs
-                    : baseDelayMs * 2 ** attempt + Math.floor(Math.random() * baseDelayMs);
+                // Honors x-rate-limit-reset (X's absolute epoch on 429) and Retry-After
+                // (delta-seconds), falling back to exponential backoff + jitter.
+                const backoffMs = computeBackoffMs({
+                    status: response.status,
+                    headers: response.headers,
+                    attempt,
+                    baseMs: baseDelayMs,
+                });
                 await new Promise((resolve) => setTimeout(resolve, backoffMs));
             }
             return this.fetchWithTimeout(url, init);

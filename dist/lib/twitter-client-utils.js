@@ -1,3 +1,5 @@
+import { expandShortUrls, urlEntitiesFromResult } from './url-expand.js';
+import { normalizeAffiliation } from './profile-enrich.js';
 export function normalizeQuoteDepth(value) {
     if (value === undefined || value === null) {
         return 1;
@@ -286,7 +288,9 @@ export function extractNoteTweetText(result) {
     return firstText(note.text, note.richtext?.text, note.rich_text?.text, note.content?.text, note.content?.richtext?.text, note.content?.rich_text?.text);
 }
 export function extractTweetText(result) {
-    return extractArticleText(result) ?? extractNoteTweetText(result) ?? firstText(result?.legacy?.full_text);
+    const fullText = firstText(result?.legacy?.full_text);
+    const expandedFullText = fullText === undefined ? undefined : expandShortUrls(fullText, urlEntitiesFromResult(result));
+    return extractArticleText(result) ?? extractNoteTweetText(result) ?? expandedFullText;
 }
 export function extractArticleMetadata(result) {
     const article = result?.article;
@@ -503,6 +507,7 @@ export function parseUsersFromInstructions(instructions) {
                 isBlueVerified: userResult.is_blue_verified,
                 profileImageUrl: legacy?.profile_image_url_https ?? userResult.avatar?.image_url,
                 createdAt: legacy?.created_at ?? core?.created_at,
+                affiliation: normalizeAffiliation(userResult) ?? undefined,
             });
         }
     }

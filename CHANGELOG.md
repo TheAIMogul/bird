@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased (fork) — 2026-06-22
+
+### Added
+- `download` command (alias `dl`) — download a tweet's media (photos, videos, animated GIFs)
+  to disk. Reuses the existing highest-bitrate variant selection, requests original-resolution
+  photos (`?name=orig`), and downloads each asset with HTTP Range resume, atomic `.part`→rename,
+  and 429-aware backoff. Flags: `-o/--out`, `--include-quoted`, `--photos-only`, `--videos-only`, `--json`.
+- Bio enrichment in user listings (`following`/`followers`) — surfaces `@handles`, domains, and
+  company mentions extracted from a profile bio, plus the org affiliation badge when present.
+
+### Changed
+- Tweet text now expands `t.co` short links to their real URLs (via the tweet's own url entities)
+  across `read`, `thread`, `replies`, `search`, timelines, etc. No-op when entities are absent.
+- Rate-limit backoff now honors X's `x-rate-limit-reset` absolute-epoch header (in addition to
+  `Retry-After`) before falling back to exponential backoff + jitter.
+
+### Tests
+- `tests/feature-tests.mjs` — 18 offline unit/integration tests (host safety, variant selection,
+  backoff math, resumable downloader with injected fetch/sleep, URL expansion, bio/affiliation).
+
+### Notes
+- Query-ID self-healing rotation already shipped in this fork (`lib/runtime-query-ids.js`); no change needed.
+
 ## 0.8.0 — 2026-01-19
 
 ### Added
