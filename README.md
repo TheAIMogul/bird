@@ -240,7 +240,7 @@ Bookmarks flags:
 Global options:
 - `--auth-token <token>`: set the `auth_token` cookie manually.
 - `--ct0 <token>`: set the `ct0` cookie manually.
-- `--cookie-source <safari|chrome|firefox>`: choose browser cookie source (repeatable; order matters).
+- `--cookie-source <comet|safari|chrome|firefox>`: choose browser cookie source (repeatable; order matters). Default order tries `comet` first.
 - `--chrome-profile <name>`: Chrome profile name for cookie extraction (e.g., `Default`, `Profile 2`).
 - `--chrome-profile-dir <path>`: Chrome/Chromium profile directory or cookie DB path for cookie extraction.
 - `--firefox-profile <name>`: Firefox profile for cookie extraction.
@@ -269,10 +269,11 @@ Write operations:
 3. Browser cookies via `@steipete/sweet-cookie` (override via `--cookie-source` order)
 
 Browser cookie sources:
+- Comet (Perplexity's Chromium browser): `~/Library/Application Support/Comet/<Profile>/Cookies` (macOS only). Tried first by default. Decrypted natively via the `Comet Safe Storage` keychain entry. With no `--chrome-profile`, profiles are scanned (`Default`, then `Profile 1`, `Profile 2`, …) and the first one with a logged-in x.com session wins; pass `--chrome-profile "Profile 1"` to pin one.
 - Safari: `~/Library/Cookies/Cookies.binarycookies` (fallback: `~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies`)
 - Chrome: `~/Library/Application Support/Google/Chrome/<Profile>/Cookies`
 - Firefox: `~/Library/Application Support/Firefox/Profiles/<profile>/cookies.sqlite`
-  - For Chromium variants (Arc/Brave/etc), pass a profile directory or cookie DB via `--chrome-profile-dir`.
+  - For other Chromium variants (Arc/Brave/etc), pass a profile directory or cookie DB via `--chrome-profile-dir`.
 
 ## Config (JSON5)
 

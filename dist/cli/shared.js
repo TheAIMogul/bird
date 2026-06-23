@@ -6,13 +6,16 @@ import kleur from 'kleur';
 import { resolveCredentials } from '../lib/cookies.js';
 import { extractTweetId } from '../lib/extract-tweet-id.js';
 import { hyperlink, labelPrefix, resolveOutputConfigFromArgv, resolveOutputConfigFromCommander, statusPrefix, } from '../lib/output.js';
-const COOKIE_SOURCES = ['safari', 'chrome', 'firefox'];
+const COOKIE_SOURCES = ['comet', 'safari', 'chrome', 'firefox'];
 function parseCookieSource(value) {
     const normalized = value.trim().toLowerCase();
-    if (normalized === 'safari' || normalized === 'chrome' || normalized === 'firefox') {
+    if (normalized === 'comet' ||
+        normalized === 'safari' ||
+        normalized === 'chrome' ||
+        normalized === 'firefox') {
         return normalized;
     }
-    throw new Error(`Invalid --cookie-source "${value}". Allowed: safari, chrome, firefox.`);
+    throw new Error(`Invalid --cookie-source "${value}". Allowed: comet, safari, chrome, firefox.`);
 }
 export const collectCookieSource = (value, previous = []) => {
     previous.push(parseCookieSource(value));
